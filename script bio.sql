@@ -15,6 +15,22 @@ CREATE TABLE empresa(
     numero VARCHAR(10) NOT NULL
 );
 
+select * from empresa;
+
+-- NIVEL_ACESSO
+-- Perfis de usuário dentro da empresa cliente
+CREATE TABLE nivel_acesso(
+	id_nivel_acesso INT PRIMARY KEY AUTO_INCREMENT,
+    nome_nivel_acesso VARCHAR(45) NOT NULL
+);
+
+INSERT INTO nivel_acesso(nome_nivel_acesso) VALUES
+('GESTOR'),
+('COORDENADOR'),
+('ANALISTA'),
+('TÉCNICO'),
+('BIOTRACE');
+
 -- USUARIO
 -- Quem loga na aplicação web para ver o dashboard: sempre vinculado a uma empresa (fabricante) e a um nível de acesso
 CREATE TABLE usuario(
@@ -25,28 +41,16 @@ CREATE TABLE usuario(
     cpf_usuario CHAR(11) UNIQUE NOT NULL,
     email_usuario VARCHAR(100) UNIQUE NOT NULL,
     senha_usuario CHAR(8) NOT NULL,
-    fk_empresa INT NOT NULL,
+    fk_empresa INT,
     fk_nivel_acesso INT NOT NULL,
     
     CONSTRAINT usuario_fk_empresa FOREIGN KEY (fk_empresa) REFERENCES empresa (id_empresa),
     CONSTRAINT usuario_fk_nivel_acesso FOREIGN KEY (fk_nivel_acesso) REFERENCES nivel_acesso (id_nivel_acesso)
 );
 
+INSERT INTO usuario(nome_usuario, dt_nasc_usuario, telefone_usuario, cpf_usuario, email_usuario, senha_usuario, fk_nivel_acesso) VALUES
+('João Franca', '2007-11-16', '11985632587', '59845632285', 'joao@biotrace.com', '12345678', 5);
 
--- NIVEL_ACESSO
--- Perfis de usuário dentro da empresa cliente
-CREATE TABLE nivel_acesso(
-	id_nivel_acesso INT PRIMARY KEY AUTO_INCREMENT,
-    nome_nivel_acesso VARCHAR(45) NOT NULL,
-    
-    CONSTRAINT nivel_acesso_fk_nome CHECK (nome_nivel_acesso IN ('GESTOR', 'COORDENADOR', 'ANALISTA', 'TÉCNICO'))
-);
-
-INSERT INTO nivel_acesso(nome_nivel_acesso) VALUES
-('GESTOR'),
-('COORDENADOR'),
-('ANALISTA'),
-('TÉCNICO');
 
 -- PERMISSAO / PERMISSOES_COMPARTILHADAS
 -- Permissões finas associadas a cada nível de acesso
@@ -63,7 +67,10 @@ INSERT INTO permissao(nome_permissao, descricao_permissao) VALUES
 ('CONFIGURAR_PARAMETRO_ALERTA', 'Definir/alterar os limites de atenção e crítico por modelo'),
 ('CADASTRAR_HOSPITAL', 'Cadastrar/editar hospital onde equipamentos são instalados'),
 ('GERENCIAR_USUARIOS', 'Cadastrar, editar ou desativar usuários da própria empresa'),
-('EDITAR_DADOS_EMPRESA', 'Editar dados cadastrais da empresa');
+('EDITAR_DADOS_EMPRESA', 'Editar dados cadastrais da empresa'),
+('CADASTRAR_EMPRESA', 'Cadastrar novas empresas clientes da BioTrace'),
+('CADASTRAR_GESTOR_EMPRESA', 'Cadastrar o primeiro gestor de uma empresa cliente'),
+('GERENCIAR_EMPRESAS', 'Visualizar e editar empresas clientes da BioTrace');
 
 CREATE TABLE permissoes_compartilhadas(
 	id_permissoes_compartilhadas INT PRIMARY KEY AUTO_INCREMENT,
@@ -94,7 +101,10 @@ INSERT INTO permissoes_compartilhadas(fk_nivel_acesso, fk_permissao) VALUES
 (4, 4),
 (4, 5),
 (4, 6),
-(4, 7);
+(4, 7),
+(5, 8),
+(5, 9),
+(5, 10);
 
 -- HOSPITAL
 -- Local de instalação do equipamento. Não é cliente da BioTrace e não tem usuário/login no sistema
@@ -119,6 +129,15 @@ CREATE TABLE modelo_equipamento(
     
     CONSTRAINT modelo_fk_empresa FOREIGN KEY (fk_empresa) REFERENCES empresa (id_empresa)
 );
+
+
+CREATE TABLE componente(
+	id_componente INT PRIMARY KEY AUTO_INCREMENT,
+    nome_componente VARCHAR(45),
+    codigo_componente VARCHAR(45),
+    tipo_medida VARCHAR(45)
+);
+
 
 -- EQUIPAMENTO
 -- Cadastro do equipamento: nº de série, modelo, hospital onde está instalado no momento, status e última comunicação
@@ -149,10 +168,36 @@ CREATE TABLE parametro_alerta(
     CONSTRAINT parametro_fk_equipamento FOREIGN KEY (fk_equipamento) REFERENCES equipamento(id_equipamento)
 );
 
-CREATE TABLE componente(
-	id_componente INT PRIMARY KEY AUTO_INCREMENT,
-    nome_componente VARCHAR(45),
-    codigo_componente VARCHAR(45),
-    tipo_medida VARCHAR(45)
-);
 
+
+SELECT
+-- Dados da empresa que serão exibidos na tabela do painel interno
+e.id_empresa,
+e.razao_social,
+e.cnpj,
+e.telefone_comercial,
+e.cep,
+e.cidade,
+e.logradouro,
+e.bairro,
+e.numero,
+
+-- Verifica se existe um usuário gestor vinculado à empresa
+-- Se existir, retorna true; caso contrário, retorna false
+CASE
+	WHEN
+		u.id_usuario IS NOT NULL
+	THEN true
+	ELSE false
+END AS temGestor,
+
+-- Retorna o nome do gestor vinculado à empresa
+-- Caso a empresa não tenha gestor, o valor será NULL
+u.nome_usuario AS nomeGestor
+
+FROM empresa e
+
+-- LEFT JOIN tambem mostra aquelas empresas que ainda não possuem gestor
+-- fk_nivel_acesso = 1 representa o nível de acesso GESTOR
+LEFT JOIN usuario u ON u.fk_empresa = e.id_empresa AND u.fk_nivel_acesso = 1
+ORDER BY e.id_empresa DESC;
