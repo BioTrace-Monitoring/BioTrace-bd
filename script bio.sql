@@ -15,7 +15,9 @@ CREATE TABLE empresa(
     numero VARCHAR(10) NOT NULL
 );
 
-select * from empresa;
+INSERT INTO empresa(razao_social, cnpj, telefone_comercial, cep, cidade, logradouro, bairro, numero) VALUES
+('Homed Equipamentos Médicos Hospitalar Ltda', '15879632587598', '11959875026', '09863956', 'São Paulo', 'Rua Brasil', 'Jardins', '99'),
+('Opus Medical Equipamentos Médico-Hospitalares', '29879682582599', '11987526653', '01589632', 'Santo André', 'Av Américo', 'Silvestre', '1985');
 
 -- NIVEL_ACESSO
 -- Perfis de usuário dentro da empresa cliente
@@ -48,9 +50,9 @@ CREATE TABLE usuario(
     CONSTRAINT usuario_fk_nivel_acesso FOREIGN KEY (fk_nivel_acesso) REFERENCES nivel_acesso (id_nivel_acesso)
 );
 
-INSERT INTO usuario(nome_usuario, dt_nasc_usuario, telefone_usuario, cpf_usuario, email_usuario, senha_usuario, fk_nivel_acesso) VALUES
-('João Franca', '2007-11-16', '11985632587', '59845632285', 'joao@biotrace.com', '12345678', 5);
-
+INSERT INTO usuario(nome_usuario, dt_nasc_usuario, telefone_usuario, cpf_usuario, email_usuario, senha_usuario, fk_empresa, fk_nivel_acesso) VALUES
+('João Franca', '2007-11-16', '11985632587', '59845632285', 'joao@biotrace.com', '12345678', NULL, 5),
+('Samara Lopes', '1999-09-06', '11956632011', '78963256600', 'samara@homed.com', '12345678', 1, 1);
 
 -- PERMISSAO / PERMISSOES_COMPARTILHADAS
 -- Permissões finas associadas a cada nível de acesso
@@ -73,7 +75,6 @@ INSERT INTO permissao(nome_permissao, descricao_permissao) VALUES
 ('GERENCIAR_EMPRESAS', 'Visualizar e editar empresas clientes da BioTrace');
 
 CREATE TABLE permissoes_compartilhadas(
-	id_permissoes_compartilhadas INT PRIMARY KEY AUTO_INCREMENT,
     fk_nivel_acesso INT NOT NULL,
     fk_permissao INT NOT NULL,
     
@@ -120,7 +121,7 @@ CREATE TABLE hospital(
 );
 
 -- MODELO_EQUIPAMENTO
--- Agrupa equipamentos do mesmo modelo por fabricante — base para identificar padrões e para configurar os parâmetros de
+-- Agrupa equipamentos do mesmo modelo por fabricante. base para identificar padrões e para configurar os parâmetros de
 -- alerta em escala (uma vez por modelo, não por equipamento)
 CREATE TABLE modelo_equipamento(
     id_modelo_equipamento INT PRIMARY KEY AUTO_INCREMENT,
@@ -131,11 +132,13 @@ CREATE TABLE modelo_equipamento(
 );
 
 
+-- COMPONENTE
+-- centraliza os componentes que vai ser monitorados.
 CREATE TABLE componente(
 	id_componente INT PRIMARY KEY AUTO_INCREMENT,
-    nome_componente VARCHAR(45),
-    codigo_componente VARCHAR(45),
-    tipo_medida VARCHAR(45)
+    nome_componente VARCHAR(45) NOT NULL,
+    codigo_componente VARCHAR(45) NOT NULL,
+    tipo_medida VARCHAR(45) NOT NULL
 );
 
 
@@ -145,12 +148,7 @@ CREATE TABLE equipamento(
     id_equipamento INT PRIMARY KEY AUTO_INCREMENT,
     numero_serie VARCHAR(60) NOT NULL UNIQUE,
     fk_modelo_equipamento INT NOT NULL,
-    fk_hospital INT,
-    dt_instalacao DATE,
-    status_atual VARCHAR(45) NOT NULL,
-    dt_ultima_comunicacao DATETIME,
-    
-    CONSTRAINT equipamento_status_atual CHECK (status_atual IN ('NORMAL', 'ATENCAO', 'CRITICO', 'INDISPONIVEL')),
+    fk_hospital INT NOT NULL,
     
     CONSTRAINT equipamento_fk_modelo FOREIGN KEY (fk_modelo_equipamento) REFERENCES modelo_equipamento (id_modelo_equipamento),
     CONSTRAINT equipamento_fk_hospital FOREIGN KEY (fk_hospital) REFERENCES hospital (id_hospital)
@@ -161,8 +159,8 @@ CREATE TABLE parametro_alerta(
     id_parametro_alerta INT PRIMARY KEY AUTO_INCREMENT,
     limite_atencao DECIMAL(5,2) NOT NULL,
     limite_critico DECIMAL(5,2) NOT NULL,
-    fk_componente INT,
-    fk_equipamento INT,
+    fk_componente INT NOT NULL,
+    fk_equipamento INT NOT NULL,
     
     CONSTRAINT parametro_fk_componente FOREIGN KEY (fk_componente) REFERENCES componente(id_componente),
     CONSTRAINT parametro_fk_equipamento FOREIGN KEY (fk_equipamento) REFERENCES equipamento(id_equipamento)
