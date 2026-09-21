@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS biotrace;
 USE biotrace;
 
 CREATE TABLE permissao (
-	id_permissao INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	codigo_permissao VARCHAR(15) NOT NULL PRIMARY KEY,
     nome_permissao VARCHAR(45) NOT NULL,
     descricao_permissao VARCHAR(100)
 );
@@ -14,12 +14,16 @@ CREATE TABLE nivel_acesso (
 
 CREATE TABLE permissoes_compartilhadas (
     fk_nivel_acesso INT NOT NULL,
-    fk_permissao INT NOT NULL,
+    fk_permissao VARCHAR(15) NOT NULL,
     PRIMARY KEY (fk_nivel_acesso, fk_permissao),
     CONSTRAINT fk_permissoes_nivel FOREIGN KEY (fk_nivel_acesso) REFERENCES nivel_acesso (id_nivel_acesso),
-    CONSTRAINT fk_permissoes_permissao FOREIGN KEY (fk_permissao) REFERENCES permissao (id_permissao)
+    CONSTRAINT fk_permissoes_permissao FOREIGN KEY (fk_permissao) REFERENCES permissao (codigo_permissao)
 );
 
+CREATE TABLE cargo (
+	id_cargo INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(45) NOT NULL
+);
 
 CREATE TABLE endereco (
     id_endereco INT NOT NULL AUTO_INCREMENT,
@@ -47,9 +51,11 @@ CREATE TABLE usuario (
     telefone_usuario CHAR(11),
     cpf_usuario CHAR(11),
     email_usuario VARCHAR(100),
-    senha_usuario CHAR(8),
+    senha_usuario VARCHAR(255),
     fk_empresa INT,
     fk_nivel_acesso INT,
+    fk_cargo INT,
+    CONSTRAINT fk_usuario_cargo FOREIGN KEY (fk_cargo) REFERENCES cargo (id_cargo),
     CONSTRAINT fk_usuario_empresa FOREIGN KEY (fk_empresa) REFERENCES empresa (id_empresa),
     CONSTRAINT fk_usuario_nivel_acesso FOREIGN KEY (fk_nivel_acesso) REFERENCES nivel_acesso (id_nivel_acesso)
 );
@@ -81,9 +87,9 @@ CREATE TABLE equipamento (
     id_equipamento INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     numero_serie VARCHAR(60) NOT NULL,
     fk_hospital INT,
-    fk_equipamento INT,
+    fk_lote INT,
     CONSTRAINT fk_equipamento_hospital FOREIGN KEY (fk_hospital) REFERENCES hospital (id_hospital),
-    CONSTRAINT fk_equipamento_equipamento FOREIGN KEY (fk_equipamento) REFERENCES equipamento (id_equipamento)
+    CONSTRAINT fk_equipamento_lote FOREIGN KEY (fk_lote) REFERENCES lote_equipamento (id_lote_equipamento)
 );
 
 CREATE TABLE tipo_componente (
